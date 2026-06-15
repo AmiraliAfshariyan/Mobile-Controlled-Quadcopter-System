@@ -1,0 +1,130 @@
+$fn = 80; 
+ 
+// ---------- پارامترها ---------- 
+th = 3;                 // ضخامت شاسی 
+ 
+// بدنه مرکزی 
+body_w = 26; 
+body_h = 60; 
+body_h_lower = 58;      // لایه پایینی 2mm کوتاه‌تر
+layer_gap = 10;         // فاصله بین دو لایه
+ 
+// بازوها 
+arm_w = 9; 
+arm_len_top = 50; 
+arm_len_bottom = 38; 
+ 
+// پد موتور
+motor_d = 18; 
+motor_hole = 7;        // فیت فشاری موتور کورلس
+ 
+// فاصله عمودی موتور پایین 
+bottom_drop = 28; 
+
+// ---------- موتور کورلس ----------
+coreless_d = 8.5;       
+coreless_h = 20;        
+
+// ---------- باتری ----------
+battery_w = 18;
+battery_h = 30;
+battery_t = 8;
+
+
+// ---------- ماژول‌ها ---------- 
+module motor_pad() { 
+    difference() { 
+        cylinder(h=th, d=motor_d, center=true); 
+        cylinder(h=th+1, d=motor_hole, center=true); 
+    } 
+} 
+ 
+module straight_arm(len) { 
+    cube([len, arm_w, th], center=true); 
+} 
+ 
+module curved_arm(x1,y1,x2,y2) { 
+    hull() { 
+        translate([x1,y1,0]) 
+            cube([arm_w, arm_w, th], center=true); 
+        translate([x2,y2,0]) 
+            cube([arm_w, arm_w, th], center=true); 
+    } 
+} 
+
+module coreless_motor_down() {
+    color("blue")
+    translate([0,0,-coreless_h/2 - th/2])
+        cylinder(h=coreless_h, d=coreless_d);
+}
+
+// ---------- ماژول بدنه شیار‌دار ----------
+module slotted_body(w, h) {
+    difference(){ 
+        cube([w, h, th], center=true); 
+        for (y = [-18 : 6 : 18]) { 
+            translate([0,y,0]) 
+                cube([w - 6, 3, th + 0.5], center=true); 
+        } 
+    }
+}
+
+
+// ---------- بدنه ---------- 
+union() { 
+
+    // ===== لایه بالایی =====
+    slotted_body(body_w, body_h);
+
+    // ===== لایه پایینی =====
+    translate([0,0,-layer_gap])
+        slotted_body(body_w, body_h_lower);
+
+ 
+    // ===== بازوهای بالا =====
+    translate([-arm_len_top/2, body_h/2 - arm_w/2, 0]) 
+        straight_arm(arm_len_top); 
+
+    translate([arm_len_top/2, body_h/2 - arm_w/2, 0]) 
+        straight_arm(arm_len_top); 
+
+    // موتور بالا چپ
+    translate([-50, body_h/2, 0]) {
+        motor_pad();
+        coreless_motor_down();
+    }
+
+    // موتور بالا راست
+    translate([50, body_h/2, 0]) {
+        motor_pad();
+        coreless_motor_down();
+    }
+
+    // ===== بازوهای پایین =====
+    curved_arm( 
+        -body_w/2, -body_h/2, 
+        -38, -body_h/2 - bottom_drop 
+    ); 
+
+    curved_arm( 
+        body_w/2, -body_h/2, 
+        38, -body_h/2 - bottom_drop 
+    ); 
+
+    // موتور پایین چپ
+    translate([-38, -body_h/2 - bottom_drop, 0]) {
+        motor_pad();
+        coreless_motor_down();
+    }
+
+    // موتور پایین راست
+    translate([38, -body_h/2 - bottom_drop, 0]) {
+        motor_pad();
+        coreless_motor_down();
+    }
+
+    // ===== باتری وسط =====
+    color("green")
+    translate([0,0,-battery_t/2 - th/2])
+        cube([battery_w, battery_h, battery_t], center=true);
+}
